@@ -1,191 +1,100 @@
 <template>
-  <div class="home">
-    <h1>Grade-Manager</h1>
+  <div class="min-h-screen bg-paper-base transition-colors duration-200 dark:bg-night-base motion-reduce:transition-none">
+    <div class="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+      <header class="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1
+            class="text-xl font-semibold tracking-tight text-paper-text dark:text-night-text sm:text-2xl"
+          >
+            Grade-Manager
+          </h1>
+          <p class="mt-0.5 text-xs text-paper-muted dark:text-night-muted">
+            Swiss scale — 1 to 6, pass at 4.0
+          </p>
+        </div>
+        <ThemeToggle />
+      </header>
 
-    <div class="grid-container">
-      <div v-for="(grades, subject) in subjects">
-        <h1>{{ subject }}</h1><br>
-        <div class="marks">
-          <div v-for="grade in grades.mark">
-          <div class="mark">
-            <p>{{ grade }}</p>
-            <button class="deleteGrade" title="Delete Grade" @click="removeMark(subject, grade)">X</button>
-          </div>
-        </div>
-        </div>
-        <p v-if="grades.average">
-          Average Ø:
-          <span v-if="grades.average >= 4" style="color: green; font-weight: bold;">
-            {{ parseFloat(grades.average).toFixed(2) }}
-          </span>
-          <span v-if="grades.average < 4" style="color: red; font-weight: bold;">
-            {{ parseFloat(grades.average).toFixed(2) }}
-          </span>
-        </p>
-        <p v-else-if="grades.average && grades.average < 4" style="color: red">
-          Average Ø: {{ parseFloat(grades.average).toFixed(2) }}
-        </p>
-        <input type="number" min="1" max="6" class="inputForMark" v-on:keyup.enter="addMark(subject, $event.target)" placeholder="Enter New Grade"/>
+      <OverallStanding
+        class="mb-6"
+        :average="overallAverage"
+        :grade-count="totalGradeCount"
+        :subject-count="subjects.length"
+      />
+
+      <EmptyState v-if="showEmptyState" @add="revealAddCard" />
+
+      <div
+        v-else
+        class="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+      >
+        <AnimatePresence>
+          <SubjectCard
+            v-for="subject in subjects"
+            :key="subject.id"
+            :subject="subject"
+            :existing-names="subjectNames"
+            @add-mark="addMark(subject.id, $event)"
+            @remove-mark="removeMarkAt(subject.id, $event)"
+            @update-mark="updateMarkAt(subject.id, $event.index, $event.value)"
+            @rename="renameSubject(subject.id, $event)"
+            @remove-subject="removeSubject(subject.id)"
+          />
+        </AnimatePresence>
+
+        <AddSubjectCard
+          ref="addCardEl"
+          :existing-names="subjectNames"
+          @add="addSubject"
+        />
       </div>
-      <div class="nameOfSubject">
-        <input type="text" v-on:keyup.enter="addSubject()" v-model="newSubject" placeholder="Name Of Grade"/>
-      </div>
-      <button class="addNewGrade" title="Add New Grade" @click="showInput()">+</button>
     </div>
-    <p class="averageOfAllSubjects" v-if="getAverageOfAllSubjects()">
-      Average Of All Subjects 
-      <span v-if="getAverageOfAllSubjects() >= 4" style="color: green">
-        {{ parseFloat(roundHalf(getAverageOfAllSubjects())).toFixed(2) }}
-      </span>
-      <span v-else-if="getAverageOfAllSubjects() < 4" style="color: red">
-        {{ parseFloat(roundHalf(getAverageOfAllSubjects())).toFixed(2) }}
-      </span>
-    </p>
   </div>
 </template>
 
-<script>
-import { ref } from 'vue'
-export default {
-  name: 'HomeView',
-  setup: function(){
-    /* To add new subject */
-    var newSubject = ref("");
-    /* To add new mark */
-    var newMark = ref("");
-    /* Get total marks of one subject */
-    var totalMarks = 0;
-    /* Get amount of marks of one subject */
-    var calculMarks = 0;
-    /* To store average of one subject */
-    var average = 0;
-    /* Get total of all marks */
-    var totalOfAllMarks = 0;
-    /* Get amount of all marks */
-    var calculAllMarks = 0;
-    /* To show subject */
-    var subjects = ref({
-      "GES": {
-        mark: [],
-        average: 0,
-      },
-      "M146": {
-        mark: [],
-        average: 0,
-      },
-      "M151": {
-        mark: [],
-        average: 0,
-      },
-      "M152": {
-        mark: [],
-        average: 0,
-      },
-      "M153": {
-        mark: [],
-        average: 0,
-      },
-      "M306": {
-        mark: [],
-        average: 0,
-      },
-      "NWS": {
-        mark: [],
-        average: 0,
-      },
-      "SPK": {
-        mark: [],
-        average: 0,
-      },
-      "WUR": {
-        mark: [],
-        average: 0,
-      },
-    })
-    /* Funktion um Note hinzuzufügen */
-    function addMark(subject, inputField){
-      let grade = inputField.value;
-      calculMarks = 0;
-      totalMarks = 0;
-      if(grade < 1 || grade > 6){
-        alert("Please enter a valid grade!");
-      }else{
-        grade = Math.round(grade * 100) / 100;
-        subjects.value[subject].mark.push(grade);
+<script setup>
+import { computed, nextTick, ref, watch } from 'vue'
+import { AnimatePresence } from 'motion-v'
+import SubjectCard from '@/components/SubjectCard.vue'
+import AddSubjectCard from '@/components/AddSubjectCard.vue'
+import OverallStanding from '@/components/OverallStanding.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { useGrades } from '@/composables/useGrades'
 
-        for (let i = 0; i < subjects.value[subject].mark.length; i++) {
-          calculMarks += subjects.value[subject].mark[i];
-          totalMarks++;
-        }
-        average = calculMarks / totalMarks;
-        subjects.value[subject].average = average;
+const {
+  subjects,
+  subjectNames,
+  overallAverage,
+  totalGradeCount,
+  addSubject,
+  renameSubject,
+  removeSubject,
+  addMark,
+  removeMarkAt,
+  updateMarkAt,
+} = useGrades()
 
-        inputField.value = "";
-      }
-    }
-    function getAverageOfAllSubjects(){
-      totalOfAllMarks = 0;
-      calculAllMarks = 0;
-      for(let subject in subjects.value){
-        for(let mark of subjects.value[subject].mark){
-          totalOfAllMarks += mark;
-          calculAllMarks++;
-        }
-      }
-      return totalOfAllMarks / calculAllMarks;
-    }
-    /* Funktion um Note zu löschen */
-    function removeMark(subject, grade){
-      calculMarks = 0;
-      totalMarks = 0;
-      const index = subjects.value[subject].mark.indexOf(grade);
-      subjects.value[subject].mark.splice(index, 1);
-      for (let i = 0; i < subjects.value[subject].mark.length; i++) {
-          calculMarks += subjects.value[subject].mark[i];
-          totalMarks++;
-      }
-      average = calculMarks / totalMarks;
-      subjects.value[subject].average = average;
-    }
-    /* Inputfeld anzeigen um ein neues Fach hinzuzufügen */
-    function showInput(){
-      document.querySelector(".nameOfSubject").style.display="block";
-    }
-    /* Neues Fach in Liste hinzufügen */
-    function addSubject(){
-      if(newSubject.value.length < 1){
-        alert("Please Enter A Valid Grade!");
-      }else if(!isNaN(newSubject.value)){
-        alert("Please enter a subject-name not a number!");
-      }else{
-        subjects.value[newSubject.value]={
-          mark: [],
-          average: 0,
-        }
-        newSubject.value ="";
-        document.querySelector(".nameOfSubject").style.display="none";
-      }
-    }
-    function roundHalf(num) {
-      return Math.round(num*2)/2;
-    }
-    return {
-      /* Für Durchschnitt */
-      average,
-      totalMarks,
-      calculMarks,
-      newMark,
-      newSubject,
-      subjects,
-      totalOfAllMarks,
-      calculAllMarks,
-      roundHalf,
-      addSubject,
-      removeMark,
-      showInput,
-      addMark,
-      getAverageOfAllSubjects
-    }
+const addCardEl = ref(null)
+
+/*
+ * With no subjects the empty state stands alone; choosing "Add subject" there
+ * swaps in the grid so the add card can take focus. Deleting the last subject
+ * returns to the empty state.
+ */
+const addCardRevealed = ref(false)
+const showEmptyState = computed(() => !subjects.value.length && !addCardRevealed.value)
+
+watch(
+  () => subjects.value.length,
+  (count) => {
+    if (count === 0) addCardRevealed.value = false
   }
+)
+
+async function revealAddCard() {
+  addCardRevealed.value = true
+  await nextTick()
+  addCardEl.value?.expand()
 }
 </script>
