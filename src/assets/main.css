@@ -1,0 +1,61 @@
+/* Self-hosted so the app has no runtime CDN dependency. Latin subset only. */
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper-base text-paper-text antialiased;
+    @apply dark:bg-night-base dark:text-night-text;
+    font-family: theme('fontFamily.sans');
+  }
+
+  /* Numerals line up in columns everywhere they appear. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /*
+   * The only repeated pattern worth extracting: every interactive element
+   * shares one focus ring, so it is defined once rather than repeated as a
+   * four-utility incantation on ~15 elements.
+   */
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-bright
+           focus-visible:ring-offset-2 focus-visible:ring-offset-paper-base
+           dark:focus-visible:ring-offset-night-base;
+  }
+
+  .focus-ring-card {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-bright
+           focus-visible:ring-offset-2 focus-visible:ring-offset-paper-card
+           dark:focus-visible:ring-offset-night-card;
+  }
+}
+
+/*
+ * Global reduced-motion honouring. motion-v transitions are additionally
+ * shortened in code, but this catches CSS transitions and animations too.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
