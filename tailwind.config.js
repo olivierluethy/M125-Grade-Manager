@@ -75,7 +75,7 @@ module.exports = {
       borderRadius: {
         card: '1rem',
         control: '0.625rem',
-        chip: '0.5rem',
+        chip: '0.625rem',
       },
       boxShadow: {
         card: '0 1px 2px rgba(10, 36, 99, 0.06), 0 8px 24px -12px rgba(10, 36, 99, 0.18)',

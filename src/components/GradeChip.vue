@@ -1,8 +1,11 @@
 <template>
-  <!-- Editing -->
+  <!--
+    Editing. Matches the display chip's min-height so switching between the
+    two states never changes the chip's box and reflows the list.
+  -->
   <div
     v-if="editing"
-    class="flex items-center gap-1 rounded-chip px-1 py-0.5 ring-1"
+    class="flex min-h-[2.25rem] items-center gap-1 rounded-chip px-1 ring-1"
     :class="tone.chip"
   >
     <input
@@ -10,8 +13,8 @@
       v-model="draft"
       type="text"
       inputmode="decimal"
-      class="w-12 bg-transparent px-1 py-0.5 text-center font-mono text-sm font-medium outline-none"
-      :aria-label="`Edit grade ${value}`"
+      class="w-14 rounded-md bg-transparent px-1.5 py-1.5 text-center font-mono text-sm font-medium leading-5 outline-none"
+      :aria-label="`Edit grade ${formatted}`"
       @keydown="onKeydown"
       @keydown.enter.prevent="save"
       @keydown.esc.prevent="cancel"
@@ -21,36 +24,38 @@
     />
     <button
       type="button"
-      class="focus-ring-card rounded p-0.5 hover:opacity-70"
+      class="focus-ring-card grid h-7 w-7 shrink-0 place-items-center rounded-md transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 motion-reduce:transition-none"
       aria-label="Save grade"
+      title="Save grade"
       @mousedown.prevent
       @click="save"
     >
-      <Check class="h-3.5 w-3.5" />
+      <Check class="h-4 w-4" />
     </button>
   </div>
 
   <!-- Display -->
   <div
     v-else
-    class="group/chip relative flex items-center rounded-chip ring-1 transition-shadow"
+    class="group/chip flex min-h-[2.25rem] items-center rounded-chip px-1 ring-1 transition-shadow duration-150 hover:shadow-sm motion-reduce:transition-none"
     :class="tone.chip"
   >
+    <!--
+      min-w clears the widest value the scale allows ("4.75"), so a one-digit
+      and a four-character grade occupy the same cell and the chips line up on
+      a grid instead of tracking their content width.
+    -->
     <button
       type="button"
-      class="focus-ring-card rounded-chip py-1 pl-2.5 pr-1 font-mono text-sm font-medium tabular-nums"
+      class="focus-ring-card min-w-[3rem] cursor-text rounded-md px-1.5 py-1.5 text-center font-mono text-sm font-medium leading-5 tabular-nums transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5 motion-reduce:transition-none"
       :aria-label="`Grade ${formatted}, ${tone.label}. Click to edit.`"
       @click="startEdit"
     >
       {{ formatted }}
     </button>
-    <!--
-      Visible by default so it is usable on touch, where there is no hover.
-      Only pointer devices get the reveal-on-hover treatment.
-    -->
     <button
       type="button"
-      class="focus-ring-card mr-1 rounded p-0.5 opacity-60 transition-opacity duration-150 hover:opacity-100 focus-visible:opacity-100 hoverable:opacity-0 hoverable:group-hover/chip:opacity-60 motion-reduce:transition-none"
+      class="focus-ring-card grid h-7 w-7 shrink-0 place-items-center rounded-md opacity-60 transition-opacity duration-150 hover:opacity-100 focus-visible:opacity-100 hoverable:opacity-0 hoverable:group-hover/chip:opacity-60 motion-reduce:transition-none"
       :aria-label="`Delete grade ${formatted}`"
       @click="$emit('delete')"
     >
@@ -94,7 +99,7 @@ function save() {
   const result = parseGrade(draft.value)
   if (!result.ok) {
     emit('error', result.error)
-    /* Keep the original value rather than dropping the grade. */
+    /* Revert rather than drop the grade. */
     editing.value = false
     return
   }
