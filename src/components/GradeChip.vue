@@ -41,32 +41,63 @@
     :class="tone.chip"
   >
     <!--
-      min-w clears the widest value the scale allows ("4.75"), so a one-digit
-      and a four-character grade occupy the same cell and the chips line up on
-      a grid instead of tracking their content width.
+      The value itself starts an edit, so the affordance works whether the user
+      reaches for the number or the pencil. min-w keeps a "5" and a "4.75" on
+      the same grid.
     -->
     <button
       type="button"
       class="focus-ring-card min-w-[3rem] cursor-text rounded-md px-1.5 py-1.5 text-center font-mono text-sm font-medium leading-5 tabular-nums transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5 motion-reduce:transition-none"
-      :aria-label="`Grade ${formatted}, ${tone.label}. Click to edit.`"
+      :aria-label="editLabel"
+      :title="editLabel"
       @click="startEdit"
     >
       {{ formatted }}
     </button>
-    <button
-      type="button"
-      class="focus-ring-card grid h-7 w-7 shrink-0 place-items-center rounded-md opacity-60 transition-opacity duration-150 hover:opacity-100 focus-visible:opacity-100 hoverable:opacity-0 hoverable:group-hover/chip:opacity-60 motion-reduce:transition-none"
-      :aria-label="`Delete grade ${formatted}`"
-      @click="$emit('delete')"
+
+    <span class="mx-0.5 h-4 w-px shrink-0 bg-current opacity-20" aria-hidden="true" />
+
+    <!--
+      Both actions are always in the DOM at a fixed size, so revealing them
+      cannot reflow the list. They sit at low opacity at rest rather than fully
+      hidden: reserved-but-invisible space reads as a gap in the chip, and the
+      hint is what makes editing discoverable in the first place. Pointer
+      devices get the reveal on hover; touch devices, which have no hover, keep
+      them at full strength.
+    -->
+    <span
+      class="flex shrink-0 items-center gap-1 opacity-100 transition-opacity duration-150 hoverable:opacity-40 hoverable:group-hover/chip:opacity-100 hoverable:group-focus-within/chip:opacity-100 motion-reduce:transition-none"
     >
-      <X class="h-3.5 w-3.5" />
-    </button>
+      <!--
+        Distinct from the value's label: both open the same editor, but a
+        screen reader announcing them identically gives no way to tell the two
+        stops apart while tabbing.
+      -->
+      <button
+        type="button"
+        class="focus-ring-card grid h-7 w-7 place-items-center rounded-md transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 motion-reduce:transition-none"
+        :aria-label="pencilLabel"
+        :title="pencilLabel"
+        @click="startEdit"
+      >
+        <Pencil class="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        class="focus-ring-card grid h-7 w-7 place-items-center rounded-md transition-colors duration-150 hover:bg-black/10 dark:hover:bg-white/10 motion-reduce:transition-none"
+        :aria-label="deleteLabel"
+        :title="deleteLabel"
+        @click="$emit('delete')"
+      >
+        <Trash2 class="h-3.5 w-3.5" />
+      </button>
+    </span>
   </div>
 </template>
 
 <script setup>
 import { computed, nextTick, ref } from 'vue'
-import { Check, X } from 'lucide-vue-next'
+import { Check, Pencil, Trash2 } from 'lucide-vue-next'
 import { getGradeTone } from '@/utils/gradeTone'
 import { parseGrade } from '@/utils/validation'
 import { useGradeField } from '@/composables/useGradeField'
@@ -84,6 +115,10 @@ const tone = computed(() => getGradeTone(props.value))
 
 /* Trailing zeros are noise on a chip: 4.50 reads better as 4.5. */
 const formatted = computed(() => String(props.value))
+
+const editLabel = computed(() => `Grade ${formatted.value} — click to edit`)
+const pencilLabel = computed(() => `Edit grade ${formatted.value}`)
+const deleteLabel = computed(() => `Delete grade ${formatted.value}`)
 
 const { onKeydown, onPaste, onInput } = useGradeField(draft)
 
