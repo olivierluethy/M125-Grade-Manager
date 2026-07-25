@@ -88,9 +88,18 @@
       @add="$emit('add-mark', $event)"
     />
 
-    <!-- The only growing zone -->
+    <!--
+      The only growing zone.
+
+      The padding is load-bearing, not decoration. `overflow-y-auto` makes the
+      other axis compute from `visible` to `auto` per the CSS overflow spec, so
+      this element clips on both axes; without an inset, each chip's focus ring
+      (4px outside its box, from ring-offset-2) and its hover/exit scale were
+      cut off against all four edges. The negative margin keeps the chips
+      optically aligned with the input above despite the inset.
+    -->
     <div
-      class="mt-3 min-h-0 flex-1 overflow-y-auto"
+      class="-mx-2 mt-1 min-h-0 flex-1 overflow-y-auto p-2"
       :class="subject.marks.length ? 'max-h-grades' : ''"
     >
       <p
@@ -100,7 +109,7 @@
         Grades you add appear here.
       </p>
 
-      <div v-else class="flex flex-wrap gap-1.5">
+      <div v-else class="flex flex-wrap gap-x-2 gap-y-2">
         <AnimatePresence>
           <motion.div
             v-for="(mark, index) in subject.marks"
